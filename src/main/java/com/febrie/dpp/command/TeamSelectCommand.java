@@ -1,6 +1,7 @@
 package com.febrie.dpp.command;
 
 import com.febrie.dpp.manager.TeamManager;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -18,25 +19,25 @@ public class TeamSelectCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage("§c플레이어만 사용할 수 있는 명령어입니다.");
+            sender.sendMessage(Component.text("§c플레이어만 사용할 수 있는 명령어입니다."));
             return true;
         }
 
         if (args.length != 1) {
-            player.sendMessage("§c사용법: /teamselect <red|blue|green|yellow>");
+            player.sendMessage(Component.text("§c사용법: /teamselect <red|blue|green|yellow>"));
             return true;
         }
 
         String teamName = args[0].toLowerCase();
         if (!isValidTeam(teamName)) {
-            player.sendMessage("§c올바른 팀을 선택하세요: red, blue, green, yellow");
+            player.sendMessage(Component.text("§c올바른 팀을 선택하세요: red, blue, green, yellow"));
             return true;
         }
 
         if (teamManager.joinTeam(player, teamName)) {
             return true;
         } else {
-            player.sendMessage("§c팀 참가에 실패했습니다.");
+            player.sendMessage(Component.text("§c팀 참가에 실패했습니다."));
             return true;
         }
     }

@@ -1,30 +1,34 @@
 package com.febrie.dpp.dto;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public record TeamData(
-    String teamName,
-    Set<UUID> members,
-    boolean eliminated,
-    boolean won,
-    long createdTime
+        String teamName,
+        Set<UUID> members,
+        boolean eliminated,
+        boolean won,
+        long createdTime
 ) {
-    public static TeamData createDefault(String teamName) {
+    @Contract("_ -> new")
+    public static @NotNull TeamData createDefault(String teamName) {
         return new TeamData(
-            teamName,
-            ConcurrentHashMap.newKeySet(),
-            false,
-            false,
-            System.currentTimeMillis()
+                teamName,
+                ConcurrentHashMap.newKeySet(),
+                false,
+                false,
+                System.currentTimeMillis()
         );
     }
-    
+
     public boolean isFull() {
         return members.size() >= 2;
     }
-    
+
     public boolean isEmpty() {
         return members.isEmpty();
     }

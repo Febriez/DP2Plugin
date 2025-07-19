@@ -1,27 +1,31 @@
 package com.febrie.dpp.dto;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public record PlayerCooldown(
-    UUID playerId,
-    Map<String, Long> skillCooldowns,
-    long lastUpdated  
+        UUID playerId,
+        Map<String, Long> skillCooldowns,
+        long lastUpdated
 ) {
-    public static PlayerCooldown createDefault(UUID playerId) {
+    @Contract("_ -> new")
+    public static @NotNull PlayerCooldown createDefault(UUID playerId) {
         return new PlayerCooldown(
-            playerId,
-            new ConcurrentHashMap<>(),
-            System.currentTimeMillis()
+                playerId,
+                new ConcurrentHashMap<>(),
+                System.currentTimeMillis()
         );
     }
-    
+
     public boolean isOnCooldown(String skillId) {
         Long expireTime = skillCooldowns.get(skillId);
         return expireTime != null && expireTime > System.currentTimeMillis();
     }
-    
+
     public long getRemainingCooldown(String skillId) {
         Long expireTime = skillCooldowns.get(skillId);
         if (expireTime == null) return 0;

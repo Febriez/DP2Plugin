@@ -91,9 +91,7 @@ DP2Plugin/
     │   │   ├── 🎮 CoreGameState.java     # 코어전 상태
     │   │   ├── ⏱️ PlayerCooldown.java    # 플레이어 쿨타임
     │   │   ├── 🧙 PlayerSkillState.java  # 플레이어 스킬 상태
-    │   │   ├── 🏪 ShopNPC.java          # 상점 NPC 데이터
-    │   │   ├── 👥 TeamData.java         # 팀 정보
-    │   │   └── 💰 TradeEntry.java       # 거래 항목
+    │   │   └── 👥 TeamData.java         # 팀 정보
     │   ├── 📁 listener/                 # 이벤트 리스너
     │   │   ├── 🏰 CoreGameListener.java  # 코어전 이벤트
     │   │   ├── ⚔️ PlayerSkillListener.java # 스킬 발동 이벤트

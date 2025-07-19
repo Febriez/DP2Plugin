@@ -1,0 +1,34 @@
+# SimpleRPG Plugin Configuration
+
+# 데이터베이스 설정
+database:
+  host: "localhost"
+  port: 3306
+  database: "simplerppg"
+  username: "minecraft"
+  password: "password"
+
+# 스킬 설정
+skills:
+  flying_carpet:
+    movement_speed: 0.5 # 블록/틱
+    smooth_movement: true # false시 텔레포트 모드
+  
+  burning_step:
+    dash_distance: 5
+    damage_amount: 5
+    
+# 상점 설정  
+shop:
+  protection_radius: 120
+  npc_locations:
+    currency: "0,auto,0"
+    skills: "3,auto,0" 
+    potions: "6,auto,0"
+
+# 코어전 설정
+coregame:
+  duration_seconds: 420
+  core_move_interval: 15
+  core_effect_radius: 30
+  core_move_radius: 20

@@ -1,0 +1,7 @@
+name: DP2Plugin
+version: '1.0-SNAPSHOT'
+main: com.febrie.dpp.SimpleRPGMain
+api-version: '1.21'
+authors: [ Febrie, CoffeeTory ]
+description: Sypixel RPG 기능을 위한 통합 플러그인
+website: https://github.com/Febriez/MyPage

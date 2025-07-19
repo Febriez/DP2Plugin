@@ -15,7 +15,9 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ShopManager {
 
@@ -27,26 +29,37 @@ public class ShopManager {
     private Villager currencyNPC;
     private Villager skillNPC;
     private Villager potionNPC;
+    
+    private final Map<String, Location> registeredShops = new HashMap<>();
 
     public ShopManager(SimpleRPGMain plugin, SkillManager skillManager) {
         this.plugin = plugin;
         this.skillManager = skillManager;
         this.shopCenter = new Location(Bukkit.getWorlds().get(0), 0, 0, 0);
 
+        loadShopLocations();
         setupShopNPCs();
     }
 
     private void setupShopNPCs() {
-        World world = shopCenter.getWorld();
-        int groundY = world.getHighestBlockYAt(shopCenter) + 1;
-
-        currencyNPC = createNPC(new Location(world, 0, groundY, 0), "§e화폐 교환소");
-        skillNPC = createNPC(new Location(world, 3, groundY, 0), "§b스킬북 상점");
-        potionNPC = createNPC(new Location(world, 6, groundY, 0), "§c스킬 삭제 상점");
-
-        setupCurrencyTrades();
-        setupSkillTrades();
-        setupPotionTrades();
+        // 등록된 상점이 있으면 해당 위치에 생성
+        if (registeredShops.containsKey("currency")) {
+            Location loc = registeredShops.get("currency");
+            currencyNPC = createNPC(loc, "§e화폐 교환소");
+            setupCurrencyTrades();
+        }
+        
+        if (registeredShops.containsKey("skill")) {
+            Location loc = registeredShops.get("skill");
+            skillNPC = createNPC(loc, "§b스킬북 상점");
+            setupSkillTrades();
+        }
+        
+        if (registeredShops.containsKey("potion")) {
+            Location loc = registeredShops.get("potion");
+            potionNPC = createNPC(loc, "§c스킬 삭제 상점");
+            setupPotionTrades();
+        }
     }
 
     private @NotNull Villager createNPC(@NotNull Location location, String name) {
@@ -166,5 +179,85 @@ public class ShopManager {
         }
 
         setupShopNPCs();
+    }
+    
+    public boolean registerShop(Location location, String shopType) {
+        try {
+            // 기존 NPC 제거
+            switch (shopType) {
+                case "currency":
+                    if (currencyNPC != null && !currencyNPC.isDead()) {
+                        currencyNPC.remove();
+                    }
+                    registeredShops.put("currency", location.clone());
+                    currencyNPC = createNPC(location, "§e화폐 교환소");
+                    setupCurrencyTrades();
+                    break;
+                    
+                case "skill":
+                    if (skillNPC != null && !skillNPC.isDead()) {
+                        skillNPC.remove();
+                    }
+                    registeredShops.put("skill", location.clone());
+                    skillNPC = createNPC(location, "§b스킬북 상점");
+                    setupSkillTrades();
+                    break;
+                    
+                case "potion":
+                    if (potionNPC != null && !potionNPC.isDead()) {
+                        potionNPC.remove();
+                    }
+                    registeredShops.put("potion", location.clone());
+                    potionNPC = createNPC(location, "§c스킬 삭제 상점");
+                    setupPotionTrades();
+                    break;
+                    
+                default:
+                    return false;
+            }
+            
+            // 상점 정보 저장
+            saveShopLocations();
+            return true;
+            
+        } catch (Exception e) {
+            plugin.getLogger().warning("상점 등록 중 오류 발생: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    private void saveShopLocations() {
+        plugin.getConfig().set("shops.currency", locationToString(registeredShops.get("currency")));
+        plugin.getConfig().set("shops.skill", locationToString(registeredShops.get("skill")));
+        plugin.getConfig().set("shops.potion", locationToString(registeredShops.get("potion")));
+        plugin.saveConfig();
+    }
+    
+    private void loadShopLocations() {
+        if (plugin.getConfig().contains("shops.currency")) {
+            registeredShops.put("currency", stringToLocation(plugin.getConfig().getString("shops.currency")));
+        }
+        if (plugin.getConfig().contains("shops.skill")) {
+            registeredShops.put("skill", stringToLocation(plugin.getConfig().getString("shops.skill")));
+        }
+        if (plugin.getConfig().contains("shops.potion")) {
+            registeredShops.put("potion", stringToLocation(plugin.getConfig().getString("shops.potion")));
+        }
+    }
+    
+    private String locationToString(Location loc) {
+        if (loc == null) return null;
+        return loc.getWorld().getName() + "," + loc.getX() + "," + loc.getY() + "," + loc.getZ();
+    }
+    
+    private Location stringToLocation(String str) {
+        if (str == null) return null;
+        String[] parts = str.split(",");
+        return new Location(
+            Bukkit.getWorld(parts[0]),
+            Double.parseDouble(parts[1]),
+            Double.parseDouble(parts[2]),
+            Double.parseDouble(parts[3])
+        );
     }
 }

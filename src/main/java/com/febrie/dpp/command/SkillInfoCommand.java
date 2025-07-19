@@ -3,14 +3,25 @@ package com.febrie.dpp.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-public class SkillInfoCommand implements CommandExecutor {
+public class SkillInfoCommand implements CommandExecutor, TabCompleter {
 
+    private final Map<String, String> koreanNames = Map.of(
+            "burning_step", "버닝스텝",
+            "pants_run", "빤스런",
+            "crystal_protection", "크리스탈프로텍션",
+            "flying_carpet", "마법의양탄자",
+            "rage_strike", "분노의일격",
+            "bomb_dog", "폭견"
+    );
+    
     private final Map<String, List<String>> skillInfos = Map.of(
             "burning_step", Arrays.asList(
                     "§c§l버닝 스텝",
@@ -60,17 +71,17 @@ public class SkillInfoCommand implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length != 1) {
-            sender.sendMessage("§c사용법: /skillinfo <스킬명>");
-            sender.sendMessage("§7사용 가능한 스킬: burning_step, pants_run, crystal_protection, flying_carpet, rage_strike, bomb_dog");
+            sender.sendMessage("§c사용법: /" + label + " <스킬명>");
+            sender.sendMessage("§7사용 가능한 스킬: 버닝스텝, 빤스런, 크리스탈프로텍션, 마법의양탄자, 분노의일격, 폭견");
             return true;
         }
 
-        String skillName = args[0].toLowerCase();
+        String skillName = convertToEnglish(args[0].toLowerCase());
         List<String> info = skillInfos.get(skillName);
 
         if (info == null) {
             sender.sendMessage("§c존재하지 않는 스킬입니다.");
-            sender.sendMessage("§7사용 가능한 스킬: burning_step, pants_run, crystal_protection, flying_carpet, rage_strike, bomb_dog");
+            sender.sendMessage("§7사용 가능한 스킬: 버닝스텝, 빤스런, 크리스탈프로텍션, 마법의양탄자, 분노의일격, 폭견");
             return true;
         }
 
@@ -81,5 +92,28 @@ public class SkillInfoCommand implements CommandExecutor {
         sender.sendMessage("§e================================");
 
         return true;
+    }
+    
+    private String convertToEnglish(String koreanSkill) {
+        for (Map.Entry<String, String> entry : koreanNames.entrySet()) {
+            if (entry.getValue().equals(koreanSkill)) {
+                return entry.getKey();
+            }
+        }
+        return koreanSkill;
+    }
+    
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String @NotNull [] args) {
+        List<String> completions = new ArrayList<>();
+        
+        if (args.length == 1) {
+            completions.addAll(koreanNames.values());
+            
+            String lowercaseInput = args[0].toLowerCase();
+            completions.removeIf(completion -> !completion.toLowerCase().startsWith(lowercaseInput));
+        }
+        
+        return completions;
     }
 }

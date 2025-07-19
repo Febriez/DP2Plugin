@@ -52,11 +52,17 @@ public final class SimpleRPGMain extends JavaPlugin {
     }
 
     private void registerCommands() {
-        Objects.requireNonNull(getCommand("teamselect")).setExecutor(new TeamSelectCommand(teamManager));
-        Objects.requireNonNull(getCommand("startcore")).setExecutor(new StartCoreCommand(coreGameManager));
-        Objects.requireNonNull(getCommand("skills")).setExecutor(new SkillsCommand(playerDataService));
-        Objects.requireNonNull(getCommand("skillinfo")).setExecutor(new SkillInfoCommand());
-        Objects.requireNonNull(getCommand("admin")).setExecutor(new AdminCommand(this));
+        TeamSelectCommand teamSelectCommand = new TeamSelectCommand(teamManager);
+        Objects.requireNonNull(getCommand("팀선택")).setExecutor(teamSelectCommand);
+        Objects.requireNonNull(getCommand("팀선택")).setTabCompleter(teamSelectCommand);
+        Objects.requireNonNull(getCommand("코어전시작")).setExecutor(new StartCoreCommand(coreGameManager));
+        Objects.requireNonNull(getCommand("스킬목록")).setExecutor(new SkillsCommand(playerDataService));
+        SkillInfoCommand skillInfoCommand = new SkillInfoCommand();
+        Objects.requireNonNull(getCommand("스킬정보")).setExecutor(skillInfoCommand);
+        Objects.requireNonNull(getCommand("스킬정보")).setTabCompleter(skillInfoCommand);
+        AdminCommand adminCommand = new AdminCommand(this);
+        Objects.requireNonNull(getCommand("관리자")).setExecutor(adminCommand);
+        Objects.requireNonNull(getCommand("관리자")).setTabCompleter(adminCommand);
     }
 
     private void registerListeners() {

@@ -7,23 +7,28 @@ description: SimpleRPG 기능을 위한 통합 플러그인
 website: https://github.com/Febriez/MyPage
 
 commands:
-  teamselect:
+  팀선택:
     description: "팀을 선택합니다"
-    usage: "/teamselect <red|blue|green|yellow>"
-  startcore:
+    usage: "/팀선택 <빨강|파랑|초록|노랑>"
+    aliases: [teamselect, 팀]
+  코어전시작:
     description: "코어전을 시작합니다"
-    usage: "/startcore"
+    usage: "/코어전시작"
     permission: simplerp.admin
-  skills:
+    aliases: [startcore, 코어전]
+  스킬목록:
     description: "보유 스킬을 확인합니다"
-    usage: "/skills"
-  skillinfo:
+    usage: "/스킬목록"
+    aliases: [skills, 스킬]
+  스킬정보:
     description: "스킬 정보를 확인합니다"
-    usage: "/skillinfo <skillname>"
-  admin:
+    usage: "/스킬정보 <스킬이름>"
+    aliases: [skillinfo]
+  관리자:
     description: "관리자 명령어"
-    usage: "/admin <reload>"
+    usage: "/관리자 <리로드|상점등록>"
     permission: simplerp.admin
+    aliases: [admin]
 
 permissions:
   simplerp.admin:

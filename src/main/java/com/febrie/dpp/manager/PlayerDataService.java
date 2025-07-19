@@ -70,7 +70,11 @@ public class PlayerDataService {
         current.skillCooldowns().put(skillId, expireTime);
         cooldownCache.put(playerId, current);
         
-        databaseManager.savePlayerCooldown(playerId, skillId, expireTime);
+        databaseManager.savePlayerCooldown(playerId, skillId, expireTime).whenComplete((result, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Failed to save cooldown for player " + playerId + ", skill " + skillId + ": " + throwable.getMessage());
+            }
+        });
     }
     
     public boolean isOnCooldown(UUID playerId, String skillId) {
@@ -89,7 +93,11 @@ public class PlayerDataService {
     }
     
     public void clearExpiredCooldowns() {
-        databaseManager.clearExpiredCooldowns();
+        databaseManager.clearExpiredCooldowns().whenComplete((result, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Failed to clear expired cooldowns from database: " + throwable.getMessage());
+            }
+        });
         
         long currentTime = System.currentTimeMillis();
         cooldownCache.values().forEach(cooldown -> 

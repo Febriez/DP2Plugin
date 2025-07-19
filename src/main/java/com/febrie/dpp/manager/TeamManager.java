@@ -57,7 +57,11 @@ public class TeamManager {
         team.members().add(playerId);
         playerTeams.put(playerId, teamName);
         
-        databaseManager.saveTeam(team);
+        databaseManager.saveTeam(team).whenComplete((result, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Failed to save team " + teamName + ": " + throwable.getMessage());
+            }
+        });
         
         player.sendMessage(String.format("§a%s 팀에 참가했습니다!", getTeamDisplayName(teamName)));
         return true;
@@ -74,9 +78,17 @@ public class TeamManager {
                 
                 if (team.isEmpty()) {
                     teams.remove(teamName);
-                    databaseManager.clearAllTeams();
+                    databaseManager.clearAllTeams().whenComplete((result, throwable) -> {
+                        if (throwable != null) {
+                            plugin.getLogger().warning("Failed to clear all teams from database: " + throwable.getMessage());
+                        }
+                    });
                 } else {
-                    databaseManager.saveTeam(team);
+                    databaseManager.saveTeam(team).whenComplete((result, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Failed to save team " + teamName + ": " + throwable.getMessage());
+            }
+        });
                 }
             }
             
@@ -110,7 +122,11 @@ public class TeamManager {
                 team.createdTime()
             );
             teams.put(teamName, eliminatedTeam);
-            databaseManager.saveTeam(eliminatedTeam);
+            databaseManager.saveTeam(eliminatedTeam).whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    plugin.getLogger().warning("Failed to save eliminated team " + teamName + ": " + throwable.getMessage());
+                }
+            });
         }
     }
     
@@ -125,14 +141,22 @@ public class TeamManager {
                 team.createdTime()
             );
             teams.put(teamName, winningTeam);
-            databaseManager.saveTeam(winningTeam);
+            databaseManager.saveTeam(winningTeam).whenComplete((result, throwable) -> {
+                if (throwable != null) {
+                    plugin.getLogger().warning("Failed to save winning team " + teamName + ": " + throwable.getMessage());
+                }
+            });
         }
     }
     
     public void resetAllTeams() {
         teams.clear();
         playerTeams.clear();
-        databaseManager.clearAllTeams();
+        databaseManager.clearAllTeams().whenComplete((result, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Failed to clear all teams: " + throwable.getMessage());
+            }
+        });
     }
     
     public Map<String, TeamData> getAllTeams() {

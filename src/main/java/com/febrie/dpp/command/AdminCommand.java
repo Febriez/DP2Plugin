@@ -21,7 +21,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
         if (!sender.hasPermission("simplerp.admin")) {
             sender.sendMessage("§c이 명령어를 사용할 권한이 없습니다.");
             return true;

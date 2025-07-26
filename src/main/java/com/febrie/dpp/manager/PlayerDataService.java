@@ -1,7 +1,7 @@
 package com.febrie.dpp.manager;
 
 import com.febrie.dpp.SimpleRPGMain;
-import com.febrie.dpp.database.DatabaseManager;
+import com.febrie.dpp.database.YamlDataManager;
 import com.febrie.dpp.dto.PlayerCooldown;
 import com.febrie.dpp.dto.PlayerSkillState;
 
@@ -13,13 +13,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PlayerDataService {
 
     private final SimpleRPGMain plugin;
-    private final DatabaseManager databaseManager;
+    private final YamlDataManager dataManager;
     private final Map<UUID, PlayerSkillState> skillCache = new ConcurrentHashMap<>();
     private final Map<UUID, PlayerCooldown> cooldownCache = new ConcurrentHashMap<>();
 
-    public PlayerDataService(SimpleRPGMain plugin, DatabaseManager databaseManager) {
+    public PlayerDataService(SimpleRPGMain plugin, YamlDataManager dataManager) {
         this.plugin = plugin;
-        this.databaseManager = databaseManager;
+        this.dataManager = dataManager;
     }
 
     public CompletableFuture<PlayerSkillState> getPlayerSkills(UUID playerId, String playerName) {
@@ -28,7 +28,7 @@ public class PlayerDataService {
             return CompletableFuture.completedFuture(cached);
         }
 
-        return databaseManager.getPlayerSkills(playerId).thenApply(skills -> {
+        return dataManager.getPlayerSkills(playerId).thenApply(skills -> {
             if (skills == null) {
                 skills = PlayerSkillState.createDefault(playerId, playerName);
             }
@@ -39,7 +39,7 @@ public class PlayerDataService {
 
     public CompletableFuture<Void> updatePlayerSkills(PlayerSkillState skills) {
         skillCache.put(skills.playerId(), skills);
-        return databaseManager.savePlayerSkills(skills);
+        return dataManager.savePlayerSkills(skills);
     }
 
     public CompletableFuture<PlayerCooldown> getPlayerCooldowns(UUID playerId) {
@@ -48,7 +48,7 @@ public class PlayerDataService {
             return CompletableFuture.completedFuture(cached);
         }
 
-        return databaseManager.getPlayerCooldowns(playerId).thenApply(cooldowns -> {
+        return dataManager.getPlayerCooldowns(playerId).thenApply(cooldowns -> {
             PlayerCooldown cooldownData = new PlayerCooldown(
                     playerId,
                     cooldowns,
@@ -70,7 +70,7 @@ public class PlayerDataService {
         current.skillCooldowns().put(skillId, expireTime);
         cooldownCache.put(playerId, current);
 
-        databaseManager.savePlayerCooldown(playerId, skillId, expireTime).whenComplete((result, throwable) -> {
+        dataManager.savePlayerCooldown(playerId, skillId, expireTime).whenComplete((result, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("Failed to save cooldown for player " + playerId + ", skill " + skillId + ": " + throwable.getMessage());
             }
@@ -93,9 +93,9 @@ public class PlayerDataService {
     }
 
     public void clearExpiredCooldowns() {
-        databaseManager.clearExpiredCooldowns().whenComplete((result, throwable) -> {
+        dataManager.clearExpiredCooldowns().whenComplete((result, throwable) -> {
             if (throwable != null) {
-                plugin.getLogger().warning("Failed to clear expired cooldowns from database: " + throwable.getMessage());
+                plugin.getLogger().warning("Failed to clear expired cooldowns from storage: " + throwable.getMessage());
             }
         });
 

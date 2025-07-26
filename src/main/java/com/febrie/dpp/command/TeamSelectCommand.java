@@ -29,13 +29,13 @@ public class TeamSelectCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length != 1) {
-            player.sendMessage(Component.text("§c사용법: /" + label + " <빨강|파랑|초록|노랑>"));
+            player.sendMessage(Component.text("§c사용법: /" + label + " <빨강|파랑|초록|노랑|보라|주황>"));
             return true;
         }
 
         String teamName = convertToEnglish(args[0].toLowerCase());
         if (!isValidTeam(teamName)) {
-            player.sendMessage(Component.text("§c올바른 팀을 선택하세요: 빨강, 파랑, 초록, 노랑"));
+            player.sendMessage(Component.text("§c올바른 팀을 선택하세요: 빨강, 파랑, 초록, 노랑, 보라, 주황"));
             return true;
         }
 
@@ -49,7 +49,8 @@ public class TeamSelectCommand implements CommandExecutor, TabCompleter {
 
     private boolean isValidTeam(String teamName) {
         return teamName.equals("red") || teamName.equals("blue") ||
-                teamName.equals("green") || teamName.equals("yellow");
+                teamName.equals("green") || teamName.equals("yellow") ||
+                teamName.equals("purple") || teamName.equals("orange");
     }
     
     private String convertToEnglish(String koreanTeam) {
@@ -58,6 +59,8 @@ public class TeamSelectCommand implements CommandExecutor, TabCompleter {
             case "파랑" -> "blue";
             case "초록" -> "green";
             case "노랑" -> "yellow";
+            case "보라" -> "purple";
+            case "주황" -> "orange";
             default -> koreanTeam;
         };
     }
@@ -67,7 +70,7 @@ public class TeamSelectCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
         
         if (args.length == 1) {
-            completions.addAll(Arrays.asList("빨강", "파랑", "초록", "노랑"));
+            completions.addAll(Arrays.asList("빨강", "파랑", "초록", "노랑", "보라", "주황"));
             
             String lowercaseInput = args[0].toLowerCase();
             completions.removeIf(completion -> !completion.toLowerCase().startsWith(lowercaseInput));

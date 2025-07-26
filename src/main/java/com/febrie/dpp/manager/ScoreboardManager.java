@@ -36,7 +36,7 @@ public class ScoreboardManager {
             existing.unregister();
         }
 
-        Objective objective = mainScoreboard.registerNewObjective(name, "dummy", Component.text(displayName));
+        Objective objective = mainScoreboard.registerNewObjective(name, org.bukkit.scoreboard.Criteria.DUMMY, Component.text(displayName));
         objectives.put(name, objective);
     }
 

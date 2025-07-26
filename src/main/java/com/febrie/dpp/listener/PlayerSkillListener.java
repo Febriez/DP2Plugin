@@ -3,12 +3,14 @@ package com.febrie.dpp.listener;
 import com.febrie.dpp.manager.CooldownManager;
 import com.febrie.dpp.manager.SkillManager;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
@@ -33,6 +35,19 @@ public class PlayerSkillListener implements Listener {
     public PlayerSkillListener(SkillManager skillManager, CooldownManager cooldownManager) {
         this.skillManager = skillManager;
         this.cooldownManager = cooldownManager;
+    }
+    
+    private Location parseCoordinates(String coords, World world) throws NumberFormatException {
+        String[] parts = coords.split(" ");
+        if (parts.length != 3) {
+            throw new NumberFormatException("Invalid coordinate format");
+        }
+        
+        double x = Double.parseDouble(parts[0]);
+        double y = Double.parseDouble(parts[1]);
+        double z = Double.parseDouble(parts[2]);
+        
+        return new Location(world, x, y, z);
     }
 
     @EventHandler
@@ -69,10 +84,11 @@ public class PlayerSkillListener implements Listener {
 
         Projectile projectile = event.getEntity();
 
-        if (projectile instanceof ThrownExpBottle && player.getInventory().getItemInMainHand().getType() == Material.BOOK) {
+        if (projectile instanceof ThrownExpBottle && player.getInventory().getItemInMainHand().getType() == Material.BOOK && skillManager.hasSkill(player, "pants_run")) {
             usePantsRun(player, projectile);
-        } else if (projectile instanceof Arrow && player.getInventory().getItemInMainHand().getType() == Material.BONE) {
-            useBombDog(player, projectile.getLocation());
+        } else if (projectile instanceof Arrow && player.getInventory().getItemInMainHand().getType() == Material.BONE && skillManager.hasSkill(player, "bomb_dog")) {
+            event.setCancelled(true); // 화살 발사 취소
+            useBombDog(player, player.getLocation());
             player.getInventory().getItemInMainHand().setAmount(
                     player.getInventory().getItemInMainHand().getAmount() - 1);
         }
@@ -86,6 +102,17 @@ public class PlayerSkillListener implements Listener {
         String skillId = skillManager.getSkillIdFromItem(item);
         if (skillId != null) {
             skillManager.removeSkill(player, skillId);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerDropItem(@NotNull PlayerDropItemEvent event) {
+        Player player = event.getPlayer();
+        ItemStack item = event.getItemDrop().getItemStack();
+
+        if (item.getType() == Material.BOOK && skillManager.hasSkill(player, "pants_run")) {
+            event.setCancelled(true);
+            usePantsRunFromBook(player, item);
         }
     }
 
@@ -111,18 +138,57 @@ public class PlayerSkillListener implements Listener {
             return;
         }
 
+        // 불저항 효과 부여
         player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 100, 0));
 
+        // 설정에서 대시 거리와 데미지 가져오기
+        int dashDistance = skillManager.getPlugin().getConfig().getInt("skills.burning_step.dash_distance", 5);
+        int damageAmount = skillManager.getPlugin().getConfig().getInt("skills.burning_step.damage_amount", 5);
+
+        // 대시
         Vector direction = player.getLocation().getDirection().normalize();
-        Location dashLocation = player.getLocation().add(direction.multiply(5));
+        Location startLocation = player.getLocation();
+        Location dashLocation = player.getLocation().add(direction.multiply(dashDistance));
         player.teleport(dashLocation);
 
-        player.getWorld().spawnParticle(Particle.FLAME, player.getLocation(), 20, 1, 1, 1, 0.1);
+        // 불 효과 - 경로에 불 설치
+        new BukkitRunnable() {
+            int ticks = 0;
+
+            @Override
+            public void run() {
+                if (ticks >= 10) {
+                    this.cancel();
+                    return;
+                }
+
+                // 시작점부터 끝점까지 불 파티클과 실제 불 생성
+                Vector step = dashLocation.toVector().subtract(startLocation.toVector()).normalize().multiply(0.5);
+                for (double i = 0; i < dashDistance; i += 0.5) {
+                    Location loc = startLocation.clone().add(step.clone().multiply(i));
+                    loc.getWorld().spawnParticle(Particle.FLAME, loc, 10, 0.5, 0.5, 0.5, 0.05);
+
+                    // 지면에 불 설치
+                    Location groundLoc = loc.clone();
+                    while (groundLoc.getBlock().getType() == Material.AIR && groundLoc.getY() > 0) {
+                        groundLoc.subtract(0, 1, 0);
+                    }
+                    if (groundLoc.getBlock().getType() != Material.AIR && groundLoc.clone().add(0, 1, 0).getBlock().getType() == Material.AIR) {
+                        groundLoc.add(0, 1, 0).getBlock().setType(Material.FIRE);
+                    }
+                }
+                ticks++;
+            }
+        }.runTaskTimer(skillManager.getPlugin(), 0, 2);
+
+        // 효과음
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1, 1);
 
+        // 주변 엔티티에게 데미지 및 불 효과
         for (Entity entity : player.getNearbyEntities(3, 3, 3)) {
             if (entity instanceof LivingEntity && !(entity instanceof Player)) {
-                ((LivingEntity) entity).damage(5);
+                ((LivingEntity) entity).damage(damageAmount);
+                entity.setFireTicks(60); // 3초간 불타오름
             }
         }
 
@@ -136,31 +202,65 @@ public class PlayerSkillListener implements Listener {
             return;
         }
 
+        ItemStack book = player.getInventory().getItemInMainHand();
+        String bookName = "";
+        if (book.hasItemMeta() && book.getItemMeta().hasDisplayName()) {
+            Component displayName = book.getItemMeta().displayName();
+            if (displayName != null) {
+                bookName = PlainTextComponentSerializer.plainText().serialize(displayName);
+            }
+        }
+
+        final String coords = bookName.isEmpty() ? "0 64 0" : bookName;
+
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (projectile.isOnGround() || projectile.isDead()) {
-                    String coords = "0 64 0";
                     try {
-                        String[] parts = coords.split(" ");
-                        if (parts.length == 3) {
-                            double x = Double.parseDouble(parts[0]);
-                            double y = Double.parseDouble(parts[1]);
-                            double z = Double.parseDouble(parts[2]);
-
-                            Location teleportLoc = new Location(player.getWorld(), x, y, z);
-                            player.teleport(teleportLoc);
-                            player.sendMessage(Component.text("§a좌표로 텔레포트했습니다!"));
-
-                            cooldownManager.setCooldown(player, "pants_run");
-                        }
+                        Location teleportLoc = parseCoordinates(coords, player.getWorld());
+                        player.teleport(teleportLoc);
+                        player.sendMessage(Component.text("§a좌표로 텔레포트했습니다!"));
+                        cooldownManager.setCooldown(player, "pants_run");
                     } catch (NumberFormatException e) {
-                        player.sendMessage(Component.text("§c잘못된 좌표 형식입니다!"));
+                        player.sendMessage(Component.text("§c책 이름을 'x y z' 형식으로 지정하세요!"));
                     }
                     this.cancel();
                 }
             }
         }.runTaskTimer(skillManager.getPlugin(), 0, 5);
+    }
+
+    private void usePantsRunFromBook(Player player, ItemStack book) {
+        if (!cooldownManager.checkCooldown(player, "pants_run")) {
+            String message = cooldownManager.formatCooldownMessage(player, "pants_run");
+            if (message != null) player.sendMessage(Component.text(message));
+            return;
+        }
+
+        String bookName = "";
+        if (book.hasItemMeta() && book.getItemMeta().hasDisplayName()) {
+            Component displayName = book.getItemMeta().displayName();
+            if (displayName != null) {
+                bookName = PlainTextComponentSerializer.plainText().serialize(displayName);
+            }
+        }
+
+        if (bookName.isEmpty()) {
+            player.sendMessage(Component.text("§c책에 좌표가 지정되지 않았습니다!"));
+            return;
+        }
+
+        try {
+            Location teleportLoc = parseCoordinates(bookName, player.getWorld());
+            player.teleport(teleportLoc);
+            player.sendMessage(Component.text("§a좌표로 텔레포트했습니다!"));
+
+            book.setAmount(book.getAmount() - 1);
+            cooldownManager.setCooldown(player, "pants_run");
+        } catch (NumberFormatException e) {
+            player.sendMessage(Component.text("§c책 이름을 'x y z' 형식으로 지정하세요!"));
+        }
     }
 
     private void useCrystalProtection(Player player) {
@@ -171,29 +271,41 @@ public class PlayerSkillListener implements Listener {
         }
 
         Location center = player.getLocation();
+        int radius = 3; // 더 큰 반경
 
-        for (int x = -1; x <= 1; x++) {
-            for (int y = -1; y <= 1; y++) {
-                for (int z = -1; z <= 1; z++) {
-                    Location blockLoc = center.clone().add(x, y, z);
-
-                    if (x == 0 && y == 0 && z == 0) {
-                        blockLoc.getBlock().setType(Material.WATER);
-                    } else {
-                        blockLoc.getBlock().setType(Material.ICE);
+        // 구 형태로 얼음 생성
+        for (int x = -radius; x <= radius; x++) {
+            for (int y = -radius; y <= radius; y++) {
+                for (int z = -radius; z <= radius; z++) {
+                    double distance = Math.sqrt(x * x + y * y + z * z);
+                    if (distance <= radius && distance >= radius - 1) { // 구의 외벽만 생성
+                        Location blockLoc = center.clone().add(x, y, z);
+                        if (blockLoc.getBlock().getType() == Material.AIR) {
+                            blockLoc.getBlock().setType(Material.ICE);
+                        }
                     }
                 }
             }
         }
 
+        // 중앙에 물 생성
+        center.getBlock().setType(Material.WATER);
+
+        // 파티클 효과
+        player.getWorld().spawnParticle(Particle.SNOWFLAKE, center, 100, radius, radius, radius, 0.1);
+        player.getWorld().playSound(center, Sound.ENTITY_PLAYER_HURT_FREEZE, 1, 1);
+
         new BukkitRunnable() {
             @Override
             public void run() {
-                for (int x = -1; x <= 1; x++) {
-                    for (int y = -1; y <= 1; y++) {
-                        for (int z = -1; z <= 1; z++) {
+                // 모든 얼음 블록 제거
+                for (int x = -radius; x <= radius; x++) {
+                    for (int y = -radius; y <= radius; y++) {
+                        for (int z = -radius; z <= radius; z++) {
                             Location blockLoc = center.clone().add(x, y, z);
-                            blockLoc.getBlock().setType(Material.AIR);
+                            if (blockLoc.getBlock().getType() == Material.ICE || blockLoc.getBlock().getType() == Material.WATER) {
+                                blockLoc.getBlock().setType(Material.AIR);
+                            }
                         }
                     }
                 }

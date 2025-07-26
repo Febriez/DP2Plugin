@@ -1,13 +1,5 @@
 # SimpleRPG Plugin Configuration
 
-# 데이터베이스 설정
-database:
-  host: "localhost"
-  port: 3306
-  database: "simplerppg"
-  username: "minecraft"
-  password: "password"
-
 # 스킬 설정
 skills:
   flying_carpet:

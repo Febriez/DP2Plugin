@@ -1,7 +1,7 @@
 package com.febrie.dpp;
 
 import com.febrie.dpp.command.*;
-import com.febrie.dpp.database.DatabaseManager;
+import com.febrie.dpp.database.YamlDataManager;
 import com.febrie.dpp.listener.*;
 import com.febrie.dpp.manager.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -10,7 +10,7 @@ import java.util.Objects;
 
 public final class SimpleRPGMain extends JavaPlugin {
 
-    private DatabaseManager databaseManager;
+    private YamlDataManager dataManager;
     private PlayerDataService playerDataService;
     private CooldownManager cooldownManager;
     private ScoreboardManager scoreboardManager;
@@ -23,10 +23,10 @@ public final class SimpleRPGMain extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
 
-        databaseManager = new DatabaseManager(this);
-        databaseManager.initialize().thenAccept(success -> {
+        dataManager = new YamlDataManager(this);
+        dataManager.initialize().thenAccept(success -> {
             if (!success) {
-                getLogger().severe("Failed to initialize database! Disabling plugin...");
+                getLogger().severe("Failed to initialize data storage! Disabling plugin...");
                 getServer().getPluginManager().disablePlugin(this);
                 return;
             }
@@ -40,11 +40,11 @@ public final class SimpleRPGMain extends JavaPlugin {
     }
 
     private void initializeManagers() {
-        playerDataService = new PlayerDataService(this, databaseManager);
+        playerDataService = new PlayerDataService(this, dataManager);
         cooldownManager = new CooldownManager(this, playerDataService);
         scoreboardManager = new ScoreboardManager();
         skillManager = new SkillManager(this, playerDataService, cooldownManager, scoreboardManager);
-        teamManager = new TeamManager(this, databaseManager);
+        teamManager = new TeamManager(this, dataManager);
         shopManager = new ShopManager(this, skillManager);
         coreGameManager = new CoreGameManager(this, teamManager, scoreboardManager);
 
@@ -75,15 +75,15 @@ public final class SimpleRPGMain extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (databaseManager != null) {
-            databaseManager.close();
+        if (dataManager != null) {
+            dataManager.close();
         }
 
         getLogger().info("SimpleRPG Plugin has been disabled!");
     }
 
-    public DatabaseManager getDatabaseManager() {
-        return databaseManager;
+    public YamlDataManager getDataManager() {
+        return dataManager;
     }
 
     public PlayerDataService getPlayerDataService() {

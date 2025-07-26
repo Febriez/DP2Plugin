@@ -35,6 +35,7 @@ public class SkillManager {
         this.skillIdKey = new NamespacedKey(plugin, "skill_id");
     }
 
+    @SuppressWarnings("deprecation")
     public ItemStack createSkillBook(String skillId) {
         ItemStack book = new ItemStack(Material.BOOK);
         ItemMeta meta = book.getItemMeta();
@@ -51,6 +52,7 @@ public class SkillManager {
         return book;
     }
 
+    @SuppressWarnings("deprecation")
     public ItemStack createSkillRemovalPotion(String skillId) {
         ItemStack potion = new ItemStack(Material.POTION);
         ItemMeta meta = potion.getItemMeta();
@@ -155,6 +157,12 @@ public class SkillManager {
             case "bomb_dog" -> skills.bombDog();
             default -> false;
         };
+    }
+    
+    public boolean hasSkill(@NotNull Player player, @NotNull String skillId) {
+        return playerDataService.getPlayerSkills(player.getUniqueId(), player.getName())
+                .thenApply(skills -> hasSkill(skills, skillId))
+                .join();
     }
 
     private PlayerSkillState updateSkillState(PlayerSkillState skills, @NotNull String skillId, boolean value) {

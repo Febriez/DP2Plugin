@@ -78,9 +78,10 @@ public class ShopManager {
     private void setupCurrencyTrades() {
         List<MerchantRecipe> trades = new ArrayList<>();
 
+        // 에메랄드 블록 3개 + 에메랄드 11개 = 200개
         trades.add(createTrade(
-                new ItemStack(Material.EMERALD, 200),
-                null,
+                new ItemStack(Material.EMERALD_BLOCK, 3),
+                new ItemStack(Material.EMERALD, 11),
                 createCurrency(1)
         ));
 
@@ -139,6 +140,7 @@ public class ShopManager {
         return recipe;
     }
 
+    @SuppressWarnings("deprecation")
     private @NotNull ItemStack createCurrency(int amount) {
         ItemStack currency = new ItemStack(Material.GOLD_NUGGET, amount);
         ItemMeta meta = currency.getItemMeta();
@@ -149,6 +151,7 @@ public class ShopManager {
         return currency;
     }
 
+    @SuppressWarnings("deprecation")
     private @NotNull ItemStack createAbilityRemovalTicket(int amount) {
         ItemStack ticket = new ItemStack(Material.PAPER, amount);
         ItemMeta meta = ticket.getItemMeta();

@@ -1,7 +1,7 @@
 package com.febrie.dpp.manager;
 
 import com.febrie.dpp.SimpleRPGMain;
-import com.febrie.dpp.database.DatabaseManager;
+import com.febrie.dpp.database.YamlDataManager;
 import com.febrie.dpp.dto.TeamData;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
@@ -15,19 +15,19 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TeamManager {
 
     private final SimpleRPGMain plugin;
-    private final DatabaseManager databaseManager;
+    private final YamlDataManager dataManager;
     private final Map<String, TeamData> teams = new ConcurrentHashMap<>();
     private final Map<UUID, String> playerTeams = new ConcurrentHashMap<>();
 
-    public TeamManager(SimpleRPGMain plugin, DatabaseManager databaseManager) {
+    public TeamManager(SimpleRPGMain plugin, YamlDataManager dataManager) {
         this.plugin = plugin;
-        this.databaseManager = databaseManager;
+        this.dataManager = dataManager;
 
         loadTeamsFromDatabase();
     }
 
     private void loadTeamsFromDatabase() {
-        databaseManager.getAllTeams().thenAccept(loadedTeams -> {
+        dataManager.getAllTeams().thenAccept(loadedTeams -> {
             teams.putAll(loadedTeams);
 
             for (TeamData team : loadedTeams.values()) {
@@ -60,7 +60,7 @@ public class TeamManager {
         team.members().add(playerId);
         playerTeams.put(playerId, teamName);
 
-        databaseManager.saveTeam(team).whenComplete((result, throwable) -> {
+        dataManager.saveTeam(team).whenComplete((result, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("Failed to save team " + teamName + ": " + throwable.getMessage());
             }
@@ -81,13 +81,13 @@ public class TeamManager {
 
                 if (team.isEmpty()) {
                     teams.remove(teamName);
-                    databaseManager.clearAllTeams().whenComplete((result, throwable) -> {
+                    dataManager.clearAllTeams().whenComplete((result, throwable) -> {
                         if (throwable != null) {
                             plugin.getLogger().warning("Failed to clear all teams from database: " + throwable.getMessage());
                         }
                     });
                 } else {
-                    databaseManager.saveTeam(team).whenComplete((result, throwable) -> {
+                    dataManager.saveTeam(team).whenComplete((result, throwable) -> {
                         if (throwable != null) {
                             plugin.getLogger().warning("Failed to save team " + teamName + ": " + throwable.getMessage());
                         }
@@ -125,7 +125,7 @@ public class TeamManager {
                     team.createdTime()
             );
             teams.put(teamName, eliminatedTeam);
-            databaseManager.saveTeam(eliminatedTeam).whenComplete((result, throwable) -> {
+            dataManager.saveTeam(eliminatedTeam).whenComplete((result, throwable) -> {
                 if (throwable != null) {
                     plugin.getLogger().warning("Failed to save eliminated team " + teamName + ": " + throwable.getMessage());
                 }
@@ -144,7 +144,7 @@ public class TeamManager {
                     team.createdTime()
             );
             teams.put(teamName, winningTeam);
-            databaseManager.saveTeam(winningTeam).whenComplete((result, throwable) -> {
+            dataManager.saveTeam(winningTeam).whenComplete((result, throwable) -> {
                 if (throwable != null) {
                     plugin.getLogger().warning("Failed to save winning team " + teamName + ": " + throwable.getMessage());
                 }
@@ -155,7 +155,7 @@ public class TeamManager {
     public void resetAllTeams() {
         teams.clear();
         playerTeams.clear();
-        databaseManager.clearAllTeams().whenComplete((result, throwable) -> {
+        dataManager.clearAllTeams().whenComplete((result, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("Failed to clear all teams: " + throwable.getMessage());
             }
@@ -168,7 +168,8 @@ public class TeamManager {
 
     private boolean isValidTeam(@NotNull String teamName) {
         return teamName.equals("red") || teamName.equals("blue") ||
-                teamName.equals("green") || teamName.equals("yellow");
+                teamName.equals("green") || teamName.equals("yellow") ||
+                teamName.equals("purple") || teamName.equals("orange");
     }
 
     @Contract(pure = true)
@@ -178,6 +179,8 @@ public class TeamManager {
             case "blue" -> "§9파란";
             case "green" -> "§a초록";
             case "yellow" -> "§e노란";
+            case "purple" -> "§5보라";
+            case "orange" -> "§6주황";
             default -> teamName;
         };
     }

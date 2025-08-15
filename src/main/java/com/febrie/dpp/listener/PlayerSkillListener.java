@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.vehicle.VehicleExitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -70,10 +71,20 @@ public class PlayerSkillListener implements Listener {
             if (item.getType() == Material.WOODEN_SWORD || item.getType() == Material.STONE_SWORD ||
                     item.getType() == Material.IRON_SWORD || item.getType() == Material.GOLDEN_SWORD ||
                     item.getType() == Material.DIAMOND_SWORD || item.getType() == Material.NETHERITE_SWORD) {
-
-                useBurningStep(player);
+                if (skillManager.hasSkill(player, "burning_step")) {
+                    useBurningStep(player);
+                }
             } else if (item.getType() == Material.SHIELD) {
-                useCrystalProtection(player);
+                if (skillManager.hasSkill(player, "crystal_protection")) {
+                    useCrystalProtection(player);
+                }
+            } else if (item.getType() == Material.BONE && skillManager.hasSkill(player, "bomb_dog")) {
+                event.setCancelled(true);
+                useBombDog(player, player.getLocation());
+                item.setAmount(item.getAmount() - 1);
+            } else if (item.getType() == Material.BOOK && skillManager.hasSkill(player, "pants_run")) {
+                event.setCancelled(true);
+                usePantsRunFromBook(player, item);
             }
         }
     }
@@ -84,14 +95,7 @@ public class PlayerSkillListener implements Listener {
 
         Projectile projectile = event.getEntity();
 
-        if (projectile instanceof ThrownExpBottle && player.getInventory().getItemInMainHand().getType() == Material.BOOK && skillManager.hasSkill(player, "pants_run")) {
-            usePantsRun(player, projectile);
-        } else if (projectile instanceof Arrow && player.getInventory().getItemInMainHand().getType() == Material.BONE && skillManager.hasSkill(player, "bomb_dog")) {
-            event.setCancelled(true); // 화살 발사 취소
-            useBombDog(player, player.getLocation());
-            player.getInventory().getItemInMainHand().setAmount(
-                    player.getInventory().getItemInMainHand().getAmount() - 1);
-        }
+        // 현재는 사용하지 않음 - 책과 뼈는 우클릭으로 처리
     }
 
     @EventHandler
@@ -110,10 +114,26 @@ public class PlayerSkillListener implements Listener {
         Player player = event.getPlayer();
         ItemStack item = event.getItemDrop().getItemStack();
 
+        // Q키로 책을 버려도 스킬 발동 가능
         if (item.getType() == Material.BOOK && skillManager.hasSkill(player, "pants_run")) {
             event.setCancelled(true);
-            usePantsRunFromBook(player, item);
+            ItemStack bookInHand = player.getInventory().getItemInMainHand();
+            if (bookInHand.getType() == Material.BOOK) {
+                usePantsRunFromBook(player, bookInHand);
+            }
         }
+    }
+
+    @EventHandler
+    public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        // 플레이어 접속 시 분노의 일격 효과 재적용
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                skillManager.applyPlayerEffectsOnJoin(player);
+            }
+        }.runTaskLater(skillManager.getPlugin(), 20L); // 1초 후 적용
     }
 
     @EventHandler
@@ -195,41 +215,6 @@ public class PlayerSkillListener implements Listener {
         cooldownManager.setCooldown(player, "burning_step");
     }
 
-    private void usePantsRun(Player player, Projectile projectile) {
-        if (!cooldownManager.checkCooldown(player, "pants_run")) {
-            String message = cooldownManager.formatCooldownMessage(player, "pants_run");
-            if (message != null) player.sendMessage(Component.text(message));
-            return;
-        }
-
-        ItemStack book = player.getInventory().getItemInMainHand();
-        String bookName = "";
-        if (book.hasItemMeta() && book.getItemMeta().hasDisplayName()) {
-            Component displayName = book.getItemMeta().displayName();
-            if (displayName != null) {
-                bookName = PlainTextComponentSerializer.plainText().serialize(displayName);
-            }
-        }
-
-        final String coords = bookName.isEmpty() ? "0 64 0" : bookName;
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (projectile.isOnGround() || projectile.isDead()) {
-                    try {
-                        Location teleportLoc = parseCoordinates(coords, player.getWorld());
-                        player.teleport(teleportLoc);
-                        player.sendMessage(Component.text("§a좌표로 텔레포트했습니다!"));
-                        cooldownManager.setCooldown(player, "pants_run");
-                    } catch (NumberFormatException e) {
-                        player.sendMessage(Component.text("§c책 이름을 'x y z' 형식으로 지정하세요!"));
-                    }
-                    this.cancel();
-                }
-            }
-        }.runTaskTimer(skillManager.getPlugin(), 0, 5);
-    }
 
     private void usePantsRunFromBook(Player player, ItemStack book) {
         if (!cooldownManager.checkCooldown(player, "pants_run")) {

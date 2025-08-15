@@ -146,6 +146,11 @@ public class SkillManager {
             }
         }
     }
+    
+    public void applyPlayerEffectsOnJoin(@NotNull Player player) {
+        playerDataService.getPlayerSkills(player.getUniqueId(), player.getName())
+                .thenAccept(skills -> updatePlayerEffects(player, skills));
+    }
 
     private boolean hasSkill(PlayerSkillState skills, @NotNull String skillId) {
         return switch (skillId) {
